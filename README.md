@@ -32,6 +32,10 @@ try {
 }
 ```
 
-> see more examples on [League/oauth2-client](https://oauth2-client.thephpleague.com/usage/)
+> see more examples on [league/oauth2-client](https://oauth2-client.thephpleague.com/usage/)
 
+## Error handling
+
+Unfortunately the response body in case of an error is not consistent. To better understand the reason a request is 
+failed call the `IdentityProviderException::getResponseBody` method.
 

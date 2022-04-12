@@ -92,6 +92,38 @@ class TrustpilotTest extends TestCase
         $this->assertNotEmpty($accessToken->getResourceOwnerId());
     }
 
+    public function testRefreshAccessToken()
+    {
+        $accessToken = new AccessToken([
+            'access_token' => '52f30f0e9bd8d74c8a7e7eb2',
+            'resource_owner_id' => '2d41b60214b2fc6f2e2647e8',
+            'refresh_token' => 'c91edc1ad4d069b117ed7dc7',
+            'expires_in' => "359999",
+        ]);
+
+        $response = new Response(200, ['Content-Type' => 'application/json']);
+        $response->getBody()->write(file_get_contents(__DIR__ . '/../data/token.json'));
+
+        $client = new Client([
+            'handler' => HandlerStack::create(
+                new MockHandler([$response])
+            )
+        ]);
+
+        $this->provider->setHttpClient($client);
+
+        $accessToken = $this->provider->getAccessToken(
+            'refresh_token', [
+                'refresh_token' => $accessToken->getRefreshToken()
+            ]
+        );
+
+        $this->assertFalse($accessToken->hasExpired());
+        $this->assertNotEmpty($accessToken->getToken());
+        $this->assertNotEmpty($accessToken->getRefreshToken());
+        $this->assertNotEmpty($accessToken->getResourceOwnerId());
+    }
+
     public function testGetResourceOwner()
     {
         $accessToken = new AccessToken([
@@ -131,10 +163,9 @@ class TrustpilotTest extends TestCase
     {
         $body = $response->getBody()->getContents();
         $data = $body ? json_decode($body, true) : [];
-        $message = $data['fault']['faultstring'] ?? $response->getReasonPhrase();
 
         $this->expectExceptionObject(
-            new IdentityProviderException($message, $response->getStatusCode(), $data)
+            new IdentityProviderException($response->getReasonPhrase(), $response->getStatusCode(), $data)
         );
 
         $client = new Client([
@@ -156,9 +187,9 @@ class TrustpilotTest extends TestCase
     public function provideFailure()
     {
         return [
-            [new Response(401, [], json_encode(['fault' => ['faultstring' => 'Token Expired']]))],
-            [new Response(401, ['Content-Type' => 'text/plain'])],
+            [new Response(401, [], '{"reason": "Authentication Failed"}')],
             [new Response(429, ['Content-Type' => 'text/plain'])],
+            [new Response(503, ['Content-Type' => 'text/plain'])],
         ];
     }
 
