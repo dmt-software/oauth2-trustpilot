@@ -32,3 +32,6 @@ try {
 }
 ```
 
+> see more examples on [oauth2-client](https://oauth2-client.thephpleague.com/usage/)
+
+

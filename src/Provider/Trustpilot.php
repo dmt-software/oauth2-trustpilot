@@ -76,7 +76,8 @@ class Trustpilot extends AbstractProvider
     protected function checkResponse(ResponseInterface $response, $data)
     {
         if ($response->getStatusCode() >= 400) {
-            throw new IdentityProviderException($response->getReasonPhrase(), $response->getStatusCode(), $data);
+            $message = $data['fault']['faultstring'] ?? $response->getReasonPhrase();
+            throw new IdentityProviderException($message, $response->getStatusCode(), $data);
         }
     }
 

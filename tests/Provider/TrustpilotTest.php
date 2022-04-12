@@ -7,9 +7,11 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 use League\OAuth2\Client\Token\AccessToken;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
 
 class TrustpilotTest extends TestCase
 {
@@ -26,6 +28,13 @@ class TrustpilotTest extends TestCase
     public function setUp(): void
     {
         $this->provider = new Trustpilot($this->credentials);
+    }
+
+    public function testGetAuthorizationUrl()
+    {
+        $url = $this->provider->getAuthorizationUrl([]);
+
+        $this->assertStringContainsString('trustpilot.com', parse_url($url, PHP_URL_HOST));
     }
 
     public function testGetBaseAuthorizationUrl()
@@ -70,10 +79,12 @@ class TrustpilotTest extends TestCase
 
         $this->provider->setHttpClient($client);
 
-        $accessToken = $this->provider->getAccessToken('password', [
-            'username' => 'my-user',
-            'password' => 'my-pass',
-        ]);
+        $accessToken = $this->provider->getAccessToken(
+            'password', [
+                'username' => 'my-user',
+                'password' => 'my-pass',
+            ]
+        );
 
         $this->assertFalse($accessToken->hasExpired());
         $this->assertNotEmpty($accessToken->getToken());
@@ -95,7 +106,10 @@ class TrustpilotTest extends TestCase
 
         $client = new Client([
             'handler' => HandlerStack::create(
-                new MockHandler([$response])
+                new MockHandler([
+                    new Response(200, [], file_get_contents(__DIR__ . '/../data/token.json')),
+                    $response
+                ])
             )
         ]);
 
@@ -105,6 +119,47 @@ class TrustpilotTest extends TestCase
 
         $this->assertInstanceOf(ResourceOwnerInterface::class, $resourceOwner);
         $this->assertSame($accessToken->getResourceOwnerId(), $resourceOwner->getId());
+    }
+
+    /**
+     * @dataProvider provideFailure
+     *
+     * @param ResponseInterface $response
+     * @throws IdentityProviderException
+     */
+    public function testGetAccessTokenFailure(ResponseInterface $response)
+    {
+        $body = $response->getBody()->getContents();
+        $data = $body ? json_decode($body, true) : [];
+        $message = $data['fault']['faultstring'] ?? $response->getReasonPhrase();
+
+        $this->expectExceptionObject(
+            new IdentityProviderException($message, $response->getStatusCode(), $data)
+        );
+
+        $client = new Client([
+            'handler' => HandlerStack::create(
+                new MockHandler([$response])
+            )
+        ]);
+
+        $this->provider->setHttpClient($client);
+
+        $this->provider->getAccessToken(
+            'password', [
+                'username' => 'my-user',
+                'password' => 'my-pass',
+            ]
+        );
+    }
+
+    public function provideFailure()
+    {
+        return [
+            [new Response(401, [], json_encode(['fault' => ['faultstring' => 'Token Expired']]))],
+            [new Response(401, ['Content-Type' => 'text/plain'])],
+            [new Response(429, ['Content-Type' => 'text/plain'])],
+        ];
     }
 
     /**
