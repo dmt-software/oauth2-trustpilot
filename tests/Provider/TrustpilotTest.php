@@ -3,10 +3,110 @@
 namespace DMT\Test\OAuth\Client\Provider;
 
 use DMT\OAuth2\Client\Provider\Trustpilot;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
+use League\OAuth2\Client\Provider\ResourceOwnerInterface;
+use League\OAuth2\Client\Token\AccessToken;
 use PHPUnit\Framework\TestCase;
 
 class TrustpilotTest extends TestCase
 {
+    /** @var string[] */
+    private $credentials = [
+        'clientId' => 'my-client-id',
+        'clientSecret' => 'my-client-secret',
+        'redirectUri' => 'my-redirect-uri',
+    ];
+
+    /** @var Trustpilot */
+    private $provider;
+
+    public function setUp(): void
+    {
+        $this->provider = new Trustpilot($this->credentials);
+    }
+
+    public function testGetBaseAuthorizationUrl()
+    {
+        $url = $this->provider->getBaseAuthorizationUrl();
+
+        $this->assertStringContainsString('trustpilot.com', parse_url($url, PHP_URL_HOST));
+    }
+
+    public function testGetBaseAccessTokenUrl()
+    {
+        $url = $this->provider->getBaseAccessTokenUrl([]);
+
+        $this->assertStringContainsString('trustpilot.com', parse_url($url, PHP_URL_HOST));
+    }
+
+    public function testGetResourceOwnerDetailsUrl()
+    {
+        $accessToken = new AccessToken([
+            'access_token' => 'c91edc1ad4d069b117ed7dc7',
+            'resource_owner_id' => '2d41b60214b2fc6f2e2647e8',
+            'refresh_token' => '52f30f0e9bd8d74c8a7e7eb2',
+            'expires_in' => "359999",
+        ]);
+
+        $url = $this->provider->getResourceOwnerDetailsUrl($accessToken);
+
+        $this->assertStringContainsString($accessToken->getResourceOwnerId(), $url);
+        $this->assertStringContainsString('trustpilot.com', parse_url($url, PHP_URL_HOST));
+    }
+
+    public function testGetAccessToken()
+    {
+        $response = new Response(200, ['Content-Type' => 'application/json']);
+        $response->getBody()->write(file_get_contents(__DIR__ . '/../data/token.json'));
+
+        $client = new Client([
+            'handler' => HandlerStack::create(
+                new MockHandler([$response])
+            )
+        ]);
+
+        $this->provider->setHttpClient($client);
+
+        $accessToken = $this->provider->getAccessToken('password', [
+            'username' => 'my-user',
+            'password' => 'my-pass',
+        ]);
+
+        $this->assertFalse($accessToken->hasExpired());
+        $this->assertNotEmpty($accessToken->getToken());
+        $this->assertNotEmpty($accessToken->getRefreshToken());
+        $this->assertNotEmpty($accessToken->getResourceOwnerId());
+    }
+
+    public function testGetResourceOwner()
+    {
+        $accessToken = new AccessToken([
+            'access_token' => 'c91edc1ad4d069b117ed7dc7',
+            'resource_owner_id' => '2d41b60214b2fc6f2e2647e8',
+            'refresh_token' => '52f30f0e9bd8d74c8a7e7eb2',
+            'expires_in' => "359999",
+        ]);
+
+        $response = new Response(200, ['Content-Type' => 'application/json']);
+        $response->getBody()->write(file_get_contents(__DIR__ . '/../data/token.json'));
+
+        $client = new Client([
+            'handler' => HandlerStack::create(
+                new MockHandler([$response])
+            )
+        ]);
+
+        $this->provider->setHttpClient($client);
+
+        $resourceOwner = $this->provider->getResourceOwner($accessToken);
+
+        $this->assertInstanceOf(ResourceOwnerInterface::class, $resourceOwner);
+        $this->assertSame($accessToken->getResourceOwnerId(), $resourceOwner->getId());
+    }
+
     /**
      * This test could be used to test your credentials.
      *

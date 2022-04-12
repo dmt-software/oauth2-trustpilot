@@ -1,0 +1,38 @@
+{
+  "links": [
+    {
+      "href": "https://api.trustpilot.com/v1/business-units/2d41b60214b2fc6f2e2647e8/reviews",
+      "method": "GET",
+      "rel": "Get a business unit's reviews"
+    }
+  ],
+  "isSubscriber": true,
+  "email": "john@trustpilot.com",
+  "phone": "+45 11 22 33 44",
+  "companyName": "Trustpilot",
+  "address": {
+    "street": "Sesame street, 1",
+    "city": "The Shire",
+    "postcode": "WD24 7NE",
+    "country": "UK",
+    "countryCode": "UK"
+  },
+  "description": {
+    "header": "About Trustpilot",
+    "text": "Trustpilot is a review platform."
+  },
+  "socialmedia": {
+    "facebook": null,
+    "linkedin": null,
+    "twitter": null,
+    "googleplus": null,
+    "youtube": null,
+    "instagram": null
+  },
+  "facebookPageId": 123456789,
+  "facebookPageUrl": "https://www.facebook.com/facebook",
+  "isFacebookActivated": true,
+  "isCommentsEnabled": true,
+  "isIncentivisingUsers": false,
+  "isClaimed": true
+}
