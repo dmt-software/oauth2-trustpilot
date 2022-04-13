@@ -80,7 +80,8 @@ class TrustpilotTest extends TestCase
         $this->provider->setHttpClient($client);
 
         $accessToken = $this->provider->getAccessToken(
-            'password', [
+            'password',
+            [
                 'username' => 'my-user',
                 'password' => 'my-pass',
             ]
@@ -113,7 +114,8 @@ class TrustpilotTest extends TestCase
         $this->provider->setHttpClient($client);
 
         $accessToken = $this->provider->getAccessToken(
-            'refresh_token', [
+            'refresh_token',
+            [
                 'refresh_token' => $accessToken->getRefreshToken()
             ]
         );
@@ -177,7 +179,8 @@ class TrustpilotTest extends TestCase
         $this->provider->setHttpClient($client);
 
         $this->provider->getAccessToken(
-            'password', [
+            'password',
+            [
                 'username' => 'my-user',
                 'password' => 'my-pass',
             ]
@@ -224,7 +227,8 @@ class TrustpilotTest extends TestCase
         ]);
 
         $accessToken = $provider->getAccessToken(
-            'password', [
+            'password',
+            [
                 'username' => $config['username'],
                 'password' => $config['password']
             ]
